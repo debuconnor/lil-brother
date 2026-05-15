@@ -9,11 +9,12 @@ Future<List<DiscoveredTv>> discoverSamsungTvs() async => const [];
 
 /// Fetches TV MAC and model name from a known IP via the Samsung REST API.
 /// May fail on web due to browser CORS restrictions.
-Future<DiscoveredTv?> fetchTvInfo(String ip) async {
+Future<DiscoveredTv?> fetchTvInfo(String ip,
+    {Duration timeout = const Duration(seconds: 3)}) async {
     try {
         final resp = await http
             .get(Uri.parse('http://$ip:8001/api/v2'))
-            .timeout(const Duration(seconds: 3));
+            .timeout(timeout);
         if (resp.statusCode != 200) return null;
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
         final device = data['device'] as Map<String, dynamic>?;

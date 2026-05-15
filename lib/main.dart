@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'providers/tv_discovery_provider.dart';
 import 'providers/tv_provider.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+// Pre-load SharedPreferences before runApp so TvProvider initializes synchronously.
+// This eliminates the CircularProgressIndicator on the home screen.
+void main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    final prefs = await SharedPreferences.getInstance();
     runApp(
         MultiProvider(
             providers: [
-                ChangeNotifierProvider(create: (_) => TvProvider()..init()),
+                ChangeNotifierProvider(create: (_) => TvProvider(prefs)..init()),
                 ChangeNotifierProvider(create: (_) => TvDiscoveryProvider()),
             ],
             child: const LilBrotherApp(),

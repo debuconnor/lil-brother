@@ -14,12 +14,43 @@ class TvScanScreen extends StatefulWidget {
 }
 
 class _TvScanScreenState extends State<TvScanScreen> {
+    final _ipController = TextEditingController();
+    bool _manualLoading = false;
+
     @override
     void initState() {
         super.initState();
         WidgetsBinding.instance.addPostFrameCallback((_) {
             context.read<TvDiscoveryProvider>().scan();
         });
+    }
+
+    @override
+    void dispose() {
+        _ipController.dispose();
+        super.dispose();
+    }
+
+    Future<void> _connectManual(BuildContext context) async {
+        final ip = _ipController.text.trim();
+        if (ip.isEmpty) return;
+        setState(() => _manualLoading = true);
+        try {
+            final tv = await context.read<TvDiscoveryProvider>().fetchFromIp(ip);
+            if (!mounted) return;
+            if (tv != null) {
+                await context.read<TvProvider>().saveConfig(
+                    TvConfig(ip: tv.ip, mac: tv.mac),
+                );
+                if (mounted) Navigator.pop(context);
+            } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('해당 IP에서 삼성 TV를 찾지 못했습니다')),
+                );
+            }
+        } finally {
+            if (mounted) setState(() => _manualLoading = false);
+        }
     }
 
     @override
@@ -48,12 +79,12 @@ class _TvScanScreenState extends State<TvScanScreen> {
                                     CircularProgressIndicator(),
                                     SizedBox(height: 20),
                                     Text(
-                                        'SSDP로 삼성 TV를 탐색 중...',
+                                        '삼성 TV 탐색 중...',
                                         style: TextStyle(color: Colors.white54),
                                     ),
                                     SizedBox(height: 8),
                                     Text(
-                                        '최대 3초 소요',
+                                        'SSDP → 서브넷 스캔 순서로 탐색합니다',
                                         style: TextStyle(color: Colors.white30, fontSize: 12),
                                     ),
                                 ],
@@ -62,10 +93,12 @@ class _TvScanScreenState extends State<TvScanScreen> {
                     }
 
                     if (discovery.results.isEmpty) {
-                        return Center(
+                        return SingleChildScrollView(
+                            padding: const EdgeInsets.all(24),
                             child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                    const SizedBox(height: 40),
                                     const Icon(Icons.tv_off_rounded, size: 56, color: Colors.white24),
                                     const SizedBox(height: 16),
                                     Text(
@@ -79,11 +112,52 @@ class _TvScanScreenState extends State<TvScanScreen> {
                                         style: TextStyle(color: Colors.white30, fontSize: 12),
                                         textAlign: TextAlign.center,
                                     ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                        '계속 안 된다면: Settings → lil-brother → Local Network 권한을 확인하세요',
+                                        style: TextStyle(color: Colors.white24, fontSize: 11),
+                                        textAlign: TextAlign.center,
+                                    ),
                                     const SizedBox(height: 28),
                                     OutlinedButton.icon(
                                         icon: const Icon(Icons.wifi_find_rounded),
                                         label: const Text('다시 탐색'),
                                         onPressed: () => discovery.scan(),
+                                    ),
+                                    const SizedBox(height: 40),
+                                    const Divider(color: Colors.white12),
+                                    const SizedBox(height: 20),
+                                    const Text(
+                                        'TV IP 직접 입력',
+                                        style: TextStyle(color: Colors.white38, fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                        controller: _ipController,
+                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                        style: const TextStyle(color: Colors.white),
+                                        decoration: const InputDecoration(
+                                            hintText: '예: 192.168.1.100',
+                                            hintStyle: TextStyle(color: Colors.white24),
+                                            enabledBorder: OutlineInputBorder(
+                                                borderSide: BorderSide(color: Colors.white24),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                                borderSide: BorderSide(color: Colors.greenAccent),
+                                            ),
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                        width: double.infinity,
+                                        child: FilledButton(
+                                            onPressed: _manualLoading ? null : () => _connectManual(context),
+                                            child: _manualLoading
+                                                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                                : const Text('연결'),
+                                        ),
                                     ),
                                 ],
                             ),

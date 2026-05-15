@@ -11,33 +11,37 @@ enum TvStatus { unknown, online, offline }
 class TvProvider extends ChangeNotifier {
     static const String _keyIp = 'tv_ip';
     static const String _keyMac = 'tv_mac';
-    static const Duration _pollInterval = Duration(seconds: 10);
+    static const Duration _pollInterval = Duration(seconds: 6);
 
-    TvConfig _config = const TvConfig(ip: '', mac: '');
+    // Initialized synchronously from pre-loaded SharedPreferences in main().
+    TvConfig _config;
     TvStatus _status = TvStatus.unknown;
     bool _busy = false;
-    bool _initialized = false;
     String? _error;
     Timer? _pollTimer;
+
+    TvProvider(SharedPreferences prefs)
+        : _config = TvConfig(
+            ip: prefs.getString(_keyIp) ?? '',
+            mac: prefs.getString(_keyMac) ?? '',
+          );
 
     TvConfig get config => _config;
     TvStatus get status => _status;
     bool get busy => _busy;
-    bool get initialized => _initialized;
+    // Always true — config loaded synchronously before runApp
+    bool get initialized => true;
     String? get error => _error;
 
     SamsungTvClient get _client => SamsungTvClient(ip: _config.ip, mac: _config.mac);
 
     Future<void> init() async {
-        final prefs = await SharedPreferences.getInstance();
-        _config = TvConfig(
-            ip: prefs.getString(_keyIp) ?? '',
-            mac: prefs.getString(_keyMac) ?? '',
-        );
-        _initialized = true;
-        notifyListeners();
         if (_config.isConfigured) {
-            await checkStatus();
+            try {
+                await checkStatus();
+            } catch (e) {
+                debugPrint('TvProvider.init: checkStatus failed: $e');
+            }
             _startPolling();
         }
     }
@@ -61,7 +65,19 @@ class TvProvider extends ChangeNotifier {
         if (!_config.isConfigured) return;
         final on = await _client.isOn();
         _status = on ? TvStatus.online : TvStatus.offline;
+        // Auto-fetch and save MAC when TV is online and MAC is not yet stored
+        if (on && !_config.hasMac) {
+            final mac = await _client.fetchMac();
+            if (mac != null) await _saveMac(mac);
+        }
         notifyListeners();
+    }
+
+    Future<void> _saveMac(String mac) async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_keyMac, mac);
+        _config = _config.copyWith(mac: mac);
+        debugPrint('TvProvider: MAC auto-saved: $mac');
     }
 
     Future<void> togglePower() async {
@@ -72,9 +88,13 @@ class TvProvider extends ChangeNotifier {
         try {
             if (_status == TvStatus.online) {
                 await _client.sendKey('KEY_POWER');
-                // Assume off; next poll will verify
                 _status = TvStatus.offline;
+                // Re-check after the TV has had time to enter standby
+                Future.delayed(const Duration(seconds: 4), checkStatus);
             } else {
+                if (!_config.hasMac) {
+                    throw Exception('TV를 켜려면 MAC 주소가 필요합니다. 설정(⚙)에서 MAC을 입력하거나 TV가 켜진 상태에서 다시 시도하세요.');
+                }
                 await _client.wakeOnLan();
                 // TV takes a few seconds to boot
                 _status = TvStatus.unknown;

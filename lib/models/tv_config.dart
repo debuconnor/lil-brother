@@ -4,7 +4,8 @@ class TvConfig {
 
     const TvConfig({required this.ip, required this.mac});
 
-    bool get isConfigured => ip.isNotEmpty && mac.isNotEmpty;
+    bool get isConfigured => ip.isNotEmpty;
+    bool get hasMac => mac.isNotEmpty;
 
     TvConfig copyWith({String? ip, String? mac}) => TvConfig(
         ip: ip ?? this.ip,

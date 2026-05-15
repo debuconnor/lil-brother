@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/tv_config.dart';
 import '../providers/tv_discovery_provider.dart';
 import '../providers/tv_provider.dart';
+import '../services/samsung_tv_client.dart';
 import 'tv_scan_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -33,6 +34,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _ipCtrl.dispose();
         _macCtrl.dispose();
         super.dispose();
+    }
+
+    void _resetPairing() {
+        final ip = _ipCtrl.text.trim();
+        if (ip.isNotEmpty) SamsungTvClient.clearToken(ip);
+        showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+                title: const Text('페어링 초기화'),
+                content: const Text(
+                    '앱 연결 기록을 초기화했습니다.\n\n'
+                    'TV에서 확인 창이 뜨지 않는다면 삼성 TV에서 직접 삭제하세요:\n\n'
+                    '설정 → 일반 → 외부 장치 관리자 → 기기 연결 관리자 → '
+                    '기기 목록 → lil-brother 삭제',
+                ),
+                actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('확인'),
+                    ),
+                ],
+            ),
+        );
     }
 
     /// Opens TV scan screen. TvScanScreen saves config directly on selection;
@@ -107,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             // Native: full SSDP scan button
                             if (!kIsWeb)
                                 Padding(
-                                    padding: const EdgeInsets.only(bottom: 20),
+                                    padding: const EdgeInsets.only(bottom: 12),
                                     child: SizedBox(
                                         width: double.infinity,
                                         height: 48,
@@ -115,6 +139,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             icon: const Icon(Icons.wifi_find_rounded),
                                             label: const Text('주변 TV 자동 탐색'),
                                             onPressed: _openScan,
+                                        ),
+                                    ),
+                                ),
+                            if (!kIsWeb)
+                                Padding(
+                                    padding: const EdgeInsets.only(bottom: 20),
+                                    child: SizedBox(
+                                        width: double.infinity,
+                                        height: 48,
+                                        child: OutlinedButton.icon(
+                                            icon: const Icon(Icons.link_off_rounded),
+                                            label: const Text('페어링 초기화'),
+                                            style: OutlinedButton.styleFrom(
+                                                foregroundColor: Colors.orangeAccent,
+                                                side: const BorderSide(color: Colors.orangeAccent),
+                                            ),
+                                            onPressed: _resetPairing,
                                         ),
                                     ),
                                 ),
@@ -187,9 +228,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     border: OutlineInputBorder(),
                                 ),
                                 validator: (v) {
-                                    if (v == null || v.trim().isEmpty) {
-                                        return 'MAC 주소를 입력하세요';
-                                    }
+                                    if (v == null || v.trim().isEmpty) return null; // optional
                                     final parts = v.trim().split(RegExp(r'[:\-]'));
                                     if (parts.length != 6) {
                                         return 'AA:BB:CC:DD:EE:FF 형식으로 입력하세요';

@@ -173,7 +173,7 @@ class _StatusBanner extends StatelessWidget {
                         Padding(
                             padding: const EdgeInsets.only(top: 8, left: 24, right: 24),
                             child: Text(
-                                tv.error!,
+                                tv.error!.replaceFirst('Exception: ', ''),
                                 style: const TextStyle(
                                     color: Colors.orangeAccent,
                                     fontSize: 12,
