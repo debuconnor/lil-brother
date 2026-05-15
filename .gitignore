@@ -1,0 +1,70 @@
+# ── GitHub / CI ──────────────────────────────────────────────────────────────
+.github
+
+# ── OS & Editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.Spotlight-V100
+.Trashes
+.AppleDouble
+
+.idea/
+.vscode/
+*.iml
+*.suo
+*.sw?
+
+# ── Flutter / Dart ────────────────────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.metadata
+build/
+doc/api/
+*.g.dart
+*.freezed.dart
+
+# ── Platform: Android ────────────────────────────────────────────────────────
+android/.gradle/
+android/local.properties
+android/captures/
+android/key.properties
+
+# ── Platform: iOS / macOS ────────────────────────────────────────────────────
+ios/Pods/
+ios/.symlinks/
+macos/Pods/
+macos/.symlinks/
+*.xcworkspace/
+xcuserdata/
+
+# ── Sensitive ────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+**/secrets.*
+**/credentials.*
+**/google-services.json
+**/GoogleService-Info.plist
+*.jks
+*.keystore
+*.p12
+*.p8
+*.mobileprovision
+
+# ── Test output ───────────────────────────────────────────────────────────────
+coverage/
+test_output/
+*.lcov
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+flutter.log
+logs/
+
+# ── Runtime ──────────────────────────────────────────────────────────────────
+.flutter.pid
+node_modules/
